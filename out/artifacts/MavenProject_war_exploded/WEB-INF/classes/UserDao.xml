@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace：名称空间；写接口全名，相当于告诉mybatis这个配置文件是实现哪个接口的 -->
+<mapper namespace="com.xiaobin.project.dao.UserDao">
+
+    <!--结果映射：当数据库字段名与实体类字段名不一致时
+    id：调用的名称
+    type：返回的数据类型
+    -->
+    <resultMap id="userInfo" type="com.xiaobin.project.model.UserInfo">
+        <!--property:程序实体类中对应的字段名    column：数据库中对应的字段名-->
+        <result property="userid" column="uid"/>
+        <result property="useraccount" column="account"/>
+        <result property="userpwd" column="pwd"/>
+        <result property="usernickname" column="nickname"/>
+        <result property="userregtime" column="regtime"/>
+        <result property="userstate" column="userstate"/>
+        <!--用于嵌套映射的，property:程序实体类中对应的字段名  column：放入嵌套查询所需要的字段（嵌套查询的条件，可以是多个）
+        javaType:实体类型    select:嵌套查询的语句的id（嵌套查询的查询名）-->
+<!--        <association property="order" column="uid" javaType="java.util.List" select="selectorder"></association>-->
+        <collection property="order" resultMap="test" ofType="com.xiaobin.project.model.Order"></collection>
+    </resultMap>
+    <resultMap id="test" type="com.xiaobin.project.model.Order">
+        <result property="uid" column="uid"/>
+        <result property="orderinf" column="orderinf"/>
+    </resultMap>
+    <!--一次查询要携带两张表的信息（连表查询）
+关联映射：
+1.嵌套查询：1.实体中进行嵌套（在查询user信息的时候，要返回用户对应的订单信息，就在user实体中新增订单的实体这个字段）
+          2.修改resultmap
+2.嵌套结果:resultMap：指定的关联的元素
+          javaType：对应嵌套进来的结果对应的实体
+-->
+    <select id="selectuser" resultMap="userInfo">
+        select * from users where uid=#{uid}
+    </select>
+    <select id="selectorder" resultType="java.util.List">
+        select * from mywork.order where uid=#{uid}
+    </select>
+    
+    <!--select：用来定义一个查询操作    id:方法名   resultType指定方法运行后返回的类型（查询语句中必须指定）   parameterType:指定传入的参数类型-->
+    <select id="selectlist" parameterType="com.xiaobin.project.model.User" resultType="com.xiaobin.project.model.User">
+        select * from users
+        <where>
+            <if test="nickname!=null">
+                and nickname=#{nickname}
+            </if>
+            <if test="regtime!=null">
+                and regtime=#{regtime}
+            </if>
+            <if test="pwd!=null">
+                and pwd=#{pwd}
+            </if>
+        </where>
+    </select>
+    <!--传参数需要用#{参数名}：代表传递过来的某个参数的值   keyProperty:使用与insert和update，指定能够唯一表示对象的属性(针对对字段能自增的数据库)
+    useGeneratedKeys:默认是false，使用与insert和update，这个会使mybatis开启自增，通过jdnc的GeneratedKeys获取到数据库内部生成的主键-->
+    <insert id="addUser" keyProperty="uid" useGeneratedKeys="true">
+insert into users (uid,account,pwd,nickname,regtime,state) values (#{uid},#{account},#{pwd},#{nickname},#{regtime},#{state})
+    </insert>
+
+<!--    <insert id="addUser" >-->
+<!--        &lt;!&ndash;keyProperty:在实体类中主键的名称-->
+<!--            resultType：设置实体类中主键的数据类型-->
+<!--            order两个属性：BEFORE：先执行selectKey，再执行insert-->
+<!--                         AFTER:先执行再执行insert，再执行selectKey-->
+<!--            &ndash;&gt;-->
+<!--<selectKey keyProperty="" resultType="" order="AFTER"></selectKey>-->
+<!--insert into users (uid,account,pwd,nickname,regtime,state) values (#{uid},#{account},#{pwd},#{nickname},#{regtime},#{state})-->
+<!--    </insert>-->
+
+
+
+
+    <select id="getOneUserInf" resultType="com.xiaobin.project.model.User">
+select * from users where account = #{account}
+    </select>
+
+    <delete id="deleteone">
+        delete from users where account=#{account}
+    </delete>
+
+    <select id="selectlistmap" resultType="java.util.Map">
+select account,nickname from users
+    </select>
+
+    <select id="getUserCount" parameterType="com.xiaobin.project.model.User" resultType="java.lang.Integer">
+        select count(*) from users
+        <where>
+            <if test="nickname!=null">
+                and nickname like #{nickname}
+            </if>
+            <if test="account!=null">
+                and account like #{account}
+            </if>
+        </where>
+    </select>
+
+    <select id="getUserPage" parameterType="com.xiaobin.project.model.User" resultType="com.xiaobin.project.model.User">
+        select * from users
+        <where>
+            <if test="nickname!=null">
+                and nickname like #{nickname}
+            </if>
+            <if test="account!=null">
+                and account like #{account}
+            </if>
+        </where>
+    </select>
+    <update id="changeUserInf" parameterType="com.xiaobin.project.model.User">
+        update users
+        <set>
+            <if test="pwd != null">pwd=#{pwd}</if>
+            <if test="nickname != null">nickname=#{nickname}</if>
+            <if test="regtime != null">regtime=#{regtime}</if>
+            <if test="state != 99">state=#{state}</if>
+        </set>
+        where account=#{account}
+    </update>
+</mapper>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<root>
+<!--    定义的格式需与数据库表名、字段名一致-->
+    <table name="com.xiaobin.project.model.User">
+        <property name="account" column="account" order="007"/>
+        <property name="pwd" column="pwd" order="123456"/>
+        <property name="nickname" column="nickname" order="007"/>
+        <property name="regtime" column="regtime" order="007"/>
+    </table>
+
+</root>

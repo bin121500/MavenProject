@@ -1,0 +1,244 @@
+<!--<!DOCTYPE html>-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>账号管理</title>
+</head>
+
+<link rel="stylesheet" href="../layui/css/layui.css">
+<script src="../layui/layui.js" charset="UTF-8"></script>
+<script src="../js/jquery-3.5.1.js" charset="UTF-8"></script>
+<!-- 注意：如果你直接复制所有代码到本地，上述js路径需要改成你本地的 -->
+<body>
+<div class="searchDiv">
+    账户：
+    <div class="layui-inline">
+        <input class="layui-input" name="id" id="searchAccount" autocomplete="off">
+    </div>
+    昵称：
+    <div class="layui-inline">
+        <input class="layui-input"  id="searchNickName" autocomplete="off">
+    </div>
+    <button class="layui-btn" data-type="reload">搜索</button>
+</div>
+
+<table class="layui-hide" id="userPageTable" lay-filter="userPageTable"></table>
+
+<script type="text/html" id="toolbarDemo">
+    <div class="layui-btn-container">
+        <button class="layui-btn layui-btn-sm" lay-event="getCheckData">获取选中行数据</button>
+        <button class="layui-btn layui-btn-sm" lay-event="getCheckLength">获取选中数目</button>
+        <button class="layui-btn layui-btn-sm" lay-event="isAll">验证是否全选</button>
+    </div>
+</script>
+
+<script type="text/html" id="barDemo">
+    <a class="layui-btn layui-btn-xs" lay-event="detail">查看</a>
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</script>
+<script type="text/html" id="switchState">
+    <!-- 这里的 checked 的状态只是演示 -->
+    <input type="checkbox" name="state" value="{{d.state}}" lay-skin="switch" lay-text="启用|禁用" lay-filter="stateSwitch" {{ d.state == 1 ? 'checked' : '' }}>
+</script>
+
+
+<script>
+    var path;
+    $(function () {
+        // path = $("#path").val();
+    })
+    layui.use('table', function(){
+        var table = layui.table
+            ,form = layui.form;
+        table.render({
+            elem: '#userPageTable'
+            ,url:'../DataServlet?methodName=testData'
+            ,toolbar: '#toolbarDemo' //开启头部工具栏，并为其绑定左侧模板 https://www.layui.com/test/table/demo1.json?page=1&limit=10
+            ,defaultToolbar: ['filter', 'exports', 'print', { //自定义头部工具栏右侧图标。如无需自定义，去除该参数即可
+                title: '提示'
+                ,layEvent: 'LAYTABLE_TIPS'
+                ,icon: 'layui-icon-tips'
+            }]
+            ,title: '用户数据表'
+            ,cols: [[
+                {type: 'checkbox', fixed: 'left'}
+                ,{field:'account', title:'账户', width:80, fixed: 'left', unresize: true, sort: true}
+                ,{field:'nickname', title:'昵称', width:120, edit: 'text'}
+                ,{field:'pwd', title:'密码', width:80, edit: 'text', sort: true}
+                ,{field:'regtime', title:'注册时间', width:200}
+                ,{field:'state', title:'状态', width:200}
+                ,{field:'state', title:'状态:启用|禁用', width:100, templet: '#switchState', unresize: true}
+                ,{fixed: 'right', title:'操作', toolbar: '#barDemo', width:250}
+            ]]
+            ,page: true
+        });
+
+        //头工具栏事件
+        table.on('toolbar(userPageTable)', function(obj){
+            var checkStatus = table.checkStatus(obj.config.id);
+            switch(obj.event){
+                case 'getCheckData':
+                    var data = checkStatus.data;
+                    layer.alert(JSON.stringify(data));
+                    break;
+                case 'getCheckLength':
+                    var data = checkStatus.data;
+                    layer.msg('选中了：'+ data.length + ' 个');
+                    break;
+                case 'isAll':
+                    layer.msg(checkStatus.isAll ? '全选': '未全选');
+                    break;
+
+                //自定义头工具栏右侧图标 - 提示
+                case 'LAYTABLE_TIPS':
+                    layer.alert('这是工具栏右侧自定义的一个图标按钮');
+                    break;
+            };
+        });
+
+        //监听行工具事件
+        table.on('tool(userPageTable)', function(obj){
+            var data = obj.data;
+            //console.log(obj)
+            if(obj.event === 'del'){
+                layer.confirm('真的删除行么', function(index){
+                    console.log(obj.data.account)
+                    $.ajax({
+                        url:"../DataServlet?methodName=delUser",
+                        method: "post",
+                        data:{account:obj.data.account},
+                        dataType: "text",
+                        beforeSend: function () {
+                        },
+                        success: function (response) {
+                            if (response=='succeed'){
+                                obj.del();
+                                layer.close(index);
+                                alert('删除成功')
+                            }else if (response=='failed'){
+                                alert('删除失败')
+                                layer.close(index);
+                            }
+                        },
+                        error: function () {
+                            alert("网络繁忙");
+                        },
+                        complete: function () {
+                        }
+                    })
+                });
+            } else if(obj.event === 'edit'){
+                layer.prompt({
+                    formType: 2
+                    ,value: data.nickname
+                }, function(value, index){
+                    $.ajax({
+                        url:"../DataServlet?methodName=changeUserNickName",
+                        method: "post",
+                        data: {userAccount: data.account,nickname:value},
+                        dataType: "text",
+                        success: function (response) {
+                            if (response=='修改成功'){
+                                obj.update({
+                                    nickname: value
+                                });
+                                layer.close(index);
+                            }else if (response=='修改失败'){
+                                layer.close(index);
+                            }
+                        },
+                    })
+                    // obj.update({
+                    //     nickname: value
+                    // });
+                    // layer.close(index);
+                });
+
+            } else if(obj.event === 'detail'){
+                // console.log(this.par)
+                // layer.prompt({
+                //     formType: 0
+                //     ,value: $("[name=]")
+                // });
+            }
+        });
+
+
+        //方法级渲染
+        table.render({
+            elem: '#userPageTable'
+            ,url:'../DataServlet?methodName=testData'
+            ,toolbar: '#toolbarDemo'
+            ,defaultToolbar: ['filter', 'exports', 'print', {
+                title: '提示'
+                ,layEvent: 'LAYTABLE_TIPS'
+                ,icon: 'layui-icon-tips'
+            }]
+            ,cols: [[
+                {type: 'checkbox', fixed: 'left'}
+                ,{field:'account', title:'账户', width:80, fixed: 'left', unresize: true, sort: true}
+                ,{field:'nickname', title:'昵称', width:120, edit: 'text'}
+                ,{field:'pwd', title:'密码', width:80, edit: 'text', sort: true}
+                ,{field:'regtime', title:'注册时间', width:200}
+                ,{field:'state', title:'状态', width:200}
+                ,{field:'state', title:'状态test', width:100, templet: '#switchState', unresize: true}
+                ,{fixed: 'right', title:'操作', toolbar: '#barDemo', width:250}
+            ]]
+            ,id: 'testReload'
+            ,page: true
+        });
+        var $layui = layui.$, active = {
+            reload: function(){
+                var searchAccount = $('#searchAccount');
+                var searchNickName = $('#searchNickName');
+                //执行重载
+                table.reload('testReload', {
+                    page: {
+                        curr: 1 //重新从第 1 页开始
+                    }
+                    ,where: {
+                            account: searchAccount.val(),
+                            nickName: searchNickName.val()
+                    }
+                }, 'data');
+            }
+        };
+        $layui('.searchDiv .layui-btn').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+
+        //监听禁用启用操作
+        form.on('switch(stateSwitch)', function(obj){
+            var checked = obj.elem.checked;
+            var account = this.parentNode.parentNode.parentNode.childNodes[1].childNodes[0].textContent
+            $.ajax({
+                url:"../DataServlet?methodName=changeUserState",
+                method: "post",
+                data: {userAccount: account,state:checked},
+                dataType: "text",
+                success: function (response) {
+                    var searchAccount = $('#searchAccount');
+                    var searchNickName = $('#searchNickName');
+                    //执行重载
+                    table.reload('testReload', {
+                        page: {
+                            curr: 1 //重新从第 1 页开始
+                        }
+                        ,where: {
+                            account: searchAccount.val(),
+                            nickName: searchNickName.val()
+                        }
+                    }, 'data');
+                },
+                error: function () {
+                },
+                complete: function () {
+                }
+            })
+        });
+    });
+</script>
+</body>
+</html>
