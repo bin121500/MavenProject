@@ -96,5 +96,6 @@ public class Test {
 //        } catch (InstantiationException e) {
 //            e.printStackTrace();
 //        }
+        System.out.println("新改动");
     }
 }
